@@ -1,44 +1,43 @@
-import { g, config } from '@grafbase/sdk'
+import { auth, config, connector, g } from '@grafbase/sdk'
 
-const User = g.model('User', {
-  name: g.string().length({min:2, max:20}),
-  email: g.string().unique(),
-  avatarUrl: g.url(),
-  description: g.string().optional(),
-  githubUrl: g.url().optional(),
-  linkedInUrl: g.url().optional(),
-  projects: g.relation(() => Project).list().optional(),
+const clerk = auth.OpenIDConnect({
+  issuer: g.env('ISSUER_URL'),
 })
 
-const Project = g.model('Project', {
-  title: g.string().length({min:3}),
-  description: g.string(),
-  image: g.url(),
-  liveSiteUrl: g.url(),
-  githubUrl: g.url(),
-  category: g.string().search(),
-  createdBy: g.relation(() => User)
+const shopify = connector.GraphQL('Shopify', {
+  url: g.env('SHOPIFY_STORE_API_URL'),
+  headers: headers => {
+    headers.set(
+      'X-Shopify-Storefront-Access-Token',
+      g.env('SHOPIFY_STOREFRONT_ACCESS_TOKEN'),
+    )
+  },
+})
+
+g.datasource(shopify)
+
+const input = g.input('AuthInput', { email: g.email(), password: g.string() })
+
+g.mutation('login', {
+  args: { input: g.inputRef(input) },
+  returns: g.string(),
+  resolver: 'login',
 })
 
 export default config({
   schema: g,
-  // Authentication - https://grafbase.com/docs/auth
+  cache: {
+    rules: [
+      {
+        maxAge: 60,
+        types: 'Query',
+      },
+    ],
+  },
   auth: {
-    // OpenID Connect
-    // const oidc = auth.OpenIDConnect({ issuer: g.env('OIDC_ISSUER_URL') })
-    // providers: [oidc],
-    rules: (rules) => {
-      rules.public()
+    providers: [clerk],
+    rules: rules => {
+      rules.private()
     },
   },
-  // Caching - https://grafbase.com/docs/graphql-edge-caching
-  // cache: {
-  //   rules: [
-  //     {
-  //       types: ['Query'], // Cache everything for 60 seconds
-  //       maxAge: 60,
-  //       staleWhileRevalidate: 60
-  //     }
-  //   ]
-  // }
 })
