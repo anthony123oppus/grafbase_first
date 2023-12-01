@@ -1,4 +1,8 @@
-import { g, config } from '@grafbase/sdk'
+import { g, auth, config } from '@grafbase/sdk'
+
+const clerk = auth.OpenIDConnect({
+  issuer: g.env('ISSUER_URL'),
+})
 
 const User = g.model('User', {
   name:g.string(),
@@ -9,6 +13,7 @@ const User = g.model('User', {
   linkedIn:g.url().optional(),
   projects:g.relation(() => Project).list().optional(),
 })
+
 
 const Project = g.model('Project', {
   title:g.string(),
