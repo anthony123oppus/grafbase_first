@@ -1,8 +1,5 @@
 import { g, auth, config } from '@grafbase/sdk'
 
-const clerk = auth.OpenIDConnect({
-  issuer: g.env('ISSUER_URL'),
-})
 
 const User = g.model('User', {
   name:g.string(),
